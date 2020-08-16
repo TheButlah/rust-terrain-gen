@@ -1,10 +1,7 @@
-mod height_map;
-
 use ndarray::parallel::prelude::*;
 
-use height_map::{Height, HeightMap};
+use super::height_map::{Height, HeightMap};
 
-type Rgb = image::Rgb<u8>;
 type TerrainMap = ndarray::Array2<TerrainType>;
 
 #[derive(Copy, Clone)]
@@ -28,7 +25,22 @@ pub struct Terrain {
     terrain_map: TerrainMap,
 }
 impl Terrain {
-    pub fn new(height_map: HeightMap) -> Self {
+    pub fn to_img(&self) -> image::RgbImage {
+        let buf: Vec<u8> = self
+            .terrain_map
+            .iter()
+            .map(|t_type| t_type.as_color())
+            .flatten()
+            .copied()
+            .collect();
+
+        let shape = self.terrain_map.shape();
+        image::RgbImage::from_raw(shape[0] as u32, shape[1] as u32, buf)
+            .expect("Vector should have been large enough, but wasn't")
+    }
+}
+impl From<HeightMap> for Terrain {
+    fn from(height_map: HeightMap) -> Self {
         let shape = height_map.shape();
         let shape = [shape[0], shape[1]];
         let terrain_map: Vec<TerrainType> = height_map
@@ -46,19 +58,5 @@ impl Terrain {
             terrain_map,
             height_map,
         }
-    }
-
-    fn to_img(&self) -> image::RgbImage {
-        let buf: Vec<u8> = self
-            .terrain_map
-            .iter()
-            .map(|t_type| t_type.as_color())
-            .flatten()
-            .copied()
-            .collect();
-
-        let shape = self.terrain_map.shape();
-        image::RgbImage::from_raw(shape[0] as u32, shape[1] as u32, buf)
-            .expect("Vector should have been large enough, but wasn't")
     }
 }

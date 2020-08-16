@@ -1,8 +1,7 @@
-pub mod terrain;
+pub mod height_map;
+mod terrain;
 
-use terrain::Terrain;
-
-use std::io;
+pub use terrain::*;
 
 #[cfg(test)]
 mod tests {
