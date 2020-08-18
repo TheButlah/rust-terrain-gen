@@ -1,3 +1,4 @@
+use indicatif::ProgressIterator;
 use ndarray::parallel::prelude::*;
 use noise::{NoiseFn, Perlin, Seedable};
 use rayon::iter::ParallelBridge;
@@ -11,63 +12,94 @@ pub type HeightMap = ndarray::Array2<Height>;
 pub struct Builder {
     pub octaves: u8,
     pub persistence: f64,
-    pub center_height: f64,
-    pub scale: f64,
+    pub center_height: Height,
+    pub scale: Height,
     /// How many pixels for one edge of the first octave's region. If `None`,
     /// will use the larger of the width or the height specified when building
     pub tile_size: Option<usize>,
-    seed: u32,
-    noise: Perlin,
+    pub seed: u32,
 }
 impl Default for Builder {
     fn default() -> Self {
         Self {
-            octaves: 8,
+            octaves: 6,
             persistence: 0.4,
             center_height: 0.0,
             scale: 1.0,
             tile_size: None,
             seed: Perlin::DEFAULT_SEED,
-            noise: Perlin::new(),
         }
     }
 }
 impl Builder {
-    pub fn seed(&mut self, seed: u32) -> &mut Self {
-        self.seed = seed;
-        self.noise.set_seed(seed);
-        self
-    }
-
     pub fn build(&self, rows: usize, cols: usize) -> HeightMap {
+        // Handle options
         assert!(self.octaves > 0, "There must be at least 1 octave");
         assert_ne!(self.tile_size, Some(0), "Tile size cannot be zero!");
         let tile_size = self.tile_size.unwrap_or(std::cmp::max(rows, cols)) as f64;
+        let hmap_shape = (rows, cols);
 
-        let mut map = HeightMap::from_elem((rows, cols), 0 as Height);
-        for i in 0..self.octaves {
-            println!("Octave {}", i);
-            let amplitude = self.persistence.powi(i as i32);
-            let horizontal_scale = 2f64.powi(i as i32) / tile_size;
-            map.indexed_iter_mut().for_each(|((row, col), height)| {
-                let i = i as i32;
-                let (y, x) = (row as f64, col as f64);
-                let y = y * horizontal_scale;
-                let x = x * horizontal_scale;
-                // println!("x,y: {},{}", x, y);
+        let perlin = noise::Perlin::new().set_seed(self.seed);
 
-                let octave_height = self.noise.get([y, x]);
-                // println!("Height: {}", octave_height);
-                let octave_height = (octave_height * amplitude) as Height;
-                // println!("Height: {}", octave_height);
+        let amplitudes: Vec<_> = (0..self.octaves)
+            .map(|i| self.persistence.powi(i as i32))
+            .collect();
+        let max_val = amplitudes.iter().sum::<f64>() as Height;
 
-                *height += octave_height;
-                // println!("Height: {}", height);
+        let mut hmap = HeightMap::zeros(hmap_shape);
+        hmap.outer_iter_mut()
+            .progress()  // it knows how many elements there will be!!
+            .enumerate()
+            .par_bridge()
+            .for_each(|(r, mut the_row)| {
+                // println!("Computing row {}", r);
+                for (octave, amplitude) in amplitudes.iter().enumerate() {
+                    let input_scale = 2f64.powi(octave as i32) / tile_size;
+                    let octave_height_fn = |c| {
+                        let (y, x) = (r as f64, c as f64);
+                        let x = (x + tile_size) * input_scale;
+                        let y = (y + tile_size) * input_scale;
+
+                        perlin.get([y, x]) as Height
+                    };
+                    let mut tmp_row =
+                        ndarray::Array1::from_shape_fn(hmap_shape.1, octave_height_fn);
+                    debug_assert_eq!(the_row.shape(), tmp_row.shape());
+
+                    tmp_row *= *amplitude as Height;
+                    the_row += &tmp_row;
+                }
             });
-        }
 
-        map *= self.scale as Height;
-        map += self.center_height as Height;
-        map
+        // let mut hmaps: Vec<HeightMap> = amplitudes
+        //     .par_iter()
+        //     .enumerate()
+        //     .map(|(i, amplitude)| {
+        //         let input_scale = 2f64.powi(i as i32) / tile_size;
+        //         const INPUT_OFFSET: f64 = 1337.0;
+        //         let octave_height_fn = |(row, col)| {
+        //             let (y, x) = (row as f64, col as f64);
+        //             let x = (x + INPUT_OFFSET) * input_scale;
+        //             let y = (y + INPUT_OFFSET) * input_scale;
+
+        //             let octave_height = perlin.get([y, x]);
+        //             (octave_height * amplitude) as Height
+        //         };
+        //         let hmap = HeightMap::from_shape_fn(hmap_shape, octave_height_fn);
+        //         println!("Octave {} finished", i);
+        //         hmap
+        //     })
+        //     .collect();
+
+        // let mut result = hmaps.pop().unwrap();
+        // // TODO: Is there a vectorized way to do this?
+        // hmaps.iter().for_each(|h| result += h);
+
+        hmap *= (self.scale / max_val) as Height;
+        hmap += self.center_height;
+        hmap
     }
 }
+
+#[cfg(test)]
+mod tests {}
