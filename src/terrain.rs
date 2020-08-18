@@ -1,5 +1,3 @@
-use ndarray::parallel::prelude::*;
-
 use super::height_map::{Height, HeightMap};
 
 type TerrainMap = ndarray::Array2<TerrainType>;
