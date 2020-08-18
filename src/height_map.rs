@@ -40,7 +40,8 @@ impl Builder {
         // Handle options
         assert!(self.octaves > 0, "There must be at least 1 octave");
         assert_ne!(self.tile_size, Some(0), "Tile size cannot be zero!");
-        let tile_size = self.tile_size.unwrap_or(std::cmp::max(rows, cols)) as f64;
+        let tile_size =
+            self.tile_size.unwrap_or_else(|| std::cmp::max(rows, cols)) as f64;
         let hmap_shape = (rows, cols);
 
         let perlin = noise::Perlin::new().set_seed(self.seed);
