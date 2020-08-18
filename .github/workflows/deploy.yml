@@ -1,0 +1,46 @@
+name: Deploy to Github Pages
+on:
+  push:
+    branches:
+      - master
+
+jobs:
+  deploy:
+    name: Deploy
+    runs-on: ubuntu-latest
+    steps:
+      # If you're using actions/checkout@v2 you must set persist-credentials to false in most cases for the deployment to work correctly
+      - uses: actions/checkout@v2
+        with:
+          persist-credentials: false
+      - uses: actions-rs/toolchain@v1
+        with:
+          profile: minimal
+          toolchain: stable
+          target: wasm32-unknown-unknown
+          override: true
+
+      - name: Cache cargo dependencies
+        uses: actions/cache@v2
+        with:
+          path: ~/.cargo/
+          key: cache-cargo-deps-${{ runner.os }}-${{ hashFiles('**/Cargo.lock', '**/Cargo.toml') }}
+
+      - name: Build to WASM
+        uses: actions-rs/cargo@v1
+        with:
+          command: build
+          args: --lib --release --target wasm32-unknown-unknown
+
+      - name: Install and run wasm-bindgen
+        # Be sure that the wasm-bindgen version matches the one in Cargo.toml
+        run: |
+          cargo install --version 0.2.67 wasm-bindgen-cli
+          wasm-bindgen target/wasm32-unknown-unknown/release/rust_terrain_gen.wasm --out-dir static/generated --target no-modules --no-typescript
+
+      - name: Deploy 🚀
+        uses: JamesIves/github-pages-deploy-action@3.5.9
+        with:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          BRANCH: gh-pages # The branch the action should deploy to.
+          FOLDER: static # The folder the action should deploy.
