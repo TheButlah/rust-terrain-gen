@@ -36,9 +36,10 @@ fn main() {
     let terrain = Terrain::from(hmap);
 
     if !opts.no_image {
-        terrain
-            .to_img()
-            .save(img_path)
-            .expect("Was unable to save the image!");
+        let shape = terrain.shape();
+        let img =
+            image::RgbImage::from_raw(shape.1 as u32, shape.0 as u32, terrain.to_rgb())
+                .expect("Vector should have been large enough, but wasn't");
+        img.save(img_path).expect("Was unable to save the image!");
     }
 }

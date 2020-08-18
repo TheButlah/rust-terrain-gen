@@ -30,16 +30,33 @@ pub struct Terrain {
     terrain_map: TerrainMap,
 }
 impl Terrain {
-    #[cfg(not(target_arch="wasm32"))]
-    pub fn to_img(&self) -> image::RgbImage {
+    pub fn shape(&self) -> (usize, usize) {
+        if let [rows, cols, ..] = self.terrain_map.shape() {
+            return (*rows, *cols);
+        }
+        unreachable!()
+    }
+
+    pub fn to_rgb(&self) -> Vec<u8> {
         let buf: Vec<[u8; 3]> =
             self.terrain_map.iter().map(TerrainType::to_color).collect();
 
         let buf: Vec<u8> = buf.iter().flatten().copied().collect();
+        buf
+    }
 
-        let shape = self.terrain_map.shape();
-        image::RgbImage::from_raw(shape[1] as u32, shape[0] as u32, buf)
-            .expect("Vector should have been large enough, but wasn't")
+    pub fn to_rgba(&self) -> Vec<u8> {
+        let buf: Vec<[u8; 4]> = self
+            .terrain_map
+            .iter()
+            .map(|t| {
+                let rgb = t.to_color();
+                [rgb[0], rgb[1], rgb[2], 255]
+            })
+            .collect();
+
+        let buf: Vec<u8> = buf.iter().flatten().copied().collect();
+        buf
     }
 }
 impl From<HeightMap> for Terrain {

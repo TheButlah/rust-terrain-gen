@@ -1,7 +1,7 @@
 pub mod height_map;
 mod terrain;
 
-#[cfg(target_arch="wasm32")]
+#[cfg(target_arch = "wasm32")]
 mod wasm;
 
 pub use terrain::*;
