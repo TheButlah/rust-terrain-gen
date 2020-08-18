@@ -26,6 +26,7 @@ impl TerrainType {
 }
 
 pub struct Terrain {
+    #[allow(dead_code)]
     height_map: HeightMap,
     terrain_map: TerrainMap,
 }
