@@ -14,6 +14,7 @@ pub struct Builder {
     pub persistence: f64,
     pub center_height: Height,
     pub scale: Height,
+    pub parallel: bool,
     /// How many pixels for one edge of the first octave's region. If `None`,
     /// will use the larger of the width or the height specified when building
     pub tile_size: Option<usize>,
@@ -27,6 +28,7 @@ impl Default for Builder {
             center_height: 0.0,
             scale: 1.0,
             tile_size: None,
+            parallel: true,
             seed: Perlin::DEFAULT_SEED,
         }
     }
@@ -47,29 +49,34 @@ impl Builder {
         let max_val = amplitudes.iter().sum::<f64>() as Height;
 
         let mut hmap = HeightMap::zeros(hmap_shape);
-        hmap.outer_iter_mut()
-            .progress()  // it knows how many elements there will be!!
-            .enumerate()
-            .par_bridge()
-            .for_each(|(r, mut the_row)| {
-                // println!("Computing row {}", r);
-                for (octave, amplitude) in amplitudes.iter().enumerate() {
-                    let input_scale = 2f64.powi(octave as i32) / tile_size;
-                    let octave_height_fn = |c| {
-                        let (y, x) = (r as f64, c as f64);
-                        let x = (x + tile_size) * input_scale;
-                        let y = (y + tile_size) * input_scale;
 
-                        perlin.get([y, x]) as Height
-                    };
-                    let mut tmp_row =
-                        ndarray::Array1::from_shape_fn(hmap_shape.1, octave_height_fn);
-                    debug_assert_eq!(the_row.shape(), tmp_row.shape());
+        let gen_fn = |(r, mut the_row)| {
+            // println!("Computing row {}", r);
+            for (octave, amplitude) in amplitudes.iter().enumerate() {
+                let input_scale = 2f64.powi(octave as i32) / tile_size;
+                let octave_height_fn = |c| {
+                    let (y, x) = (r as f64, c as f64);
+                    let x = (x + tile_size) * input_scale;
+                    let y = (y + tile_size) * input_scale;
 
-                    tmp_row *= *amplitude as Height;
-                    the_row += &tmp_row;
-                }
-            });
+                    perlin.get([y, x]) as Height
+                };
+                let mut tmp_row =
+                    ndarray::Array1::from_shape_fn(hmap_shape.1, octave_height_fn);
+
+                tmp_row *= *amplitude as Height;
+                the_row += &tmp_row;
+            }
+        };
+
+        // the progress bar even knows how many elements there will be!!
+        let iter = hmap.outer_iter_mut().progress().enumerate();
+
+        if self.parallel {
+            iter.par_bridge().for_each(gen_fn);
+        } else {
+            iter.for_each(gen_fn);
+        };
 
         // let mut hmaps: Vec<HeightMap> = amplitudes
         //     .par_iter()
