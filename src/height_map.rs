@@ -1,4 +1,6 @@
+#[cfg(not(target_arch="wasm32"))]
 use indicatif::ProgressIterator;
+
 use ndarray::parallel::prelude::*;
 use noise::{NoiseFn, Perlin, Seedable};
 use rayon::iter::ParallelBridge;
@@ -70,7 +72,10 @@ impl Builder {
         };
 
         // the progress bar even knows how many elements there will be!!
-        let iter = hmap.outer_iter_mut().progress().enumerate();
+        let iter = hmap.outer_iter_mut().enumerate();
+
+        #[cfg(not(target_arch="wasm32"))]
+        let iter = iter.progress();
 
         if self.parallel {
             iter.par_bridge().for_each(gen_fn);

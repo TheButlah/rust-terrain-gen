@@ -30,6 +30,7 @@ pub struct Terrain {
     terrain_map: TerrainMap,
 }
 impl Terrain {
+    #[cfg(not(target_arch="wasm32"))]
     pub fn to_img(&self) -> image::RgbImage {
         let buf: Vec<[u8; 3]> =
             self.terrain_map.iter().map(TerrainType::to_color).collect();

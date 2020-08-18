@@ -1,3 +1,5 @@
 /target
+/static/generated
+
 Cargo.lock
 my_terrain.png
