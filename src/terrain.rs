@@ -16,7 +16,7 @@ impl TerrainType {
             Self::Mountain => [223, 137, 64],
             Self::Grass(height) => {
                 assert!(height >= 0.0 && height <= 1.0);
-                let g = height * 100.0 + 155 as f32;
+                let g = height * 100.0 + 155_f32;
                 let g = num::clamp(g as u8, 0, 255);
                 [0, g, 0]
             }
