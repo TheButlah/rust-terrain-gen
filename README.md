@@ -1,5 +1,5 @@
 # rust-terrain-gen
-A Rust project amenable to newcomers to the language. A working demo using web assembly (i.e. Rust running natively in your browser) is available at [thebutlah.github.io/rust-terrain-gen](thebutlah.github.io/rust-terrain-gen)
+A Rust project amenable to newcomers to the language. A working demo using web assembly (i.e. Rust running natively in your browser) is available at [thebutlah.github.io/rust-terrain-gen](https://thebutlah.github.io/rust-terrain-gen)
 
 ## Why Terrain Generation as a demo/beginner project?
 Terrain generation has a couple of important properties:
