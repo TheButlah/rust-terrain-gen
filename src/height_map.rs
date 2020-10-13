@@ -84,30 +84,6 @@ impl Builder {
             iter.for_each(gen_fn);
         };
 
-        // let mut hmaps: Vec<HeightMap> = amplitudes
-        //     .par_iter()
-        //     .enumerate()
-        //     .map(|(i, amplitude)| {
-        //         let input_scale = 2f64.powi(i as i32) / tile_size;
-        //         const INPUT_OFFSET: f64 = 1337.0;
-        //         let octave_height_fn = |(row, col)| {
-        //             let (y, x) = (row as f64, col as f64);
-        //             let x = (x + INPUT_OFFSET) * input_scale;
-        //             let y = (y + INPUT_OFFSET) * input_scale;
-
-        //             let octave_height = perlin.get([y, x]);
-        //             (octave_height * amplitude) as Height
-        //         };
-        //         let hmap = HeightMap::from_shape_fn(hmap_shape, octave_height_fn);
-        //         println!("Octave {} finished", i);
-        //         hmap
-        //     })
-        //     .collect();
-
-        // let mut result = hmaps.pop().unwrap();
-        // // TODO: Is there a vectorized way to do this?
-        // hmaps.iter().for_each(|h| result += h);
-
         hmap *= (self.scale / max_val) as Height;
         hmap += self.center_height;
         hmap
